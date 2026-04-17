@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>欢乐识字卡 - 蔬菜果蔬乐园</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background: linear-gradient(145deg, #2e7d32 0%, #1b5e20 100%);
+            font-family: 'Segoe UI', 'Comic Neue', 'Chalkboard SE', 'Microsoft YaHei', cursive, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            position: relative;
+        }
+
+        /* 蔬菜装饰背景 (漂浮效果) */
+        body::before {
+            content: "🥬🥦🍅🌶️🥕🍆🥒🍓🍉🍌🍇🍎";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            font-size: 70px;
+            opacity: 0.1;
+            pointer-events: none;
+            white-space: normal;
+            word-break: break-all;
+            overflow: hidden;
+            z-index: 0;
+            letter-spacing: 20px;
+            line-height: 1.8;
+            transform: rotate(-5deg);
+        }
+
+        /* 主游戏面板 */
+        .game-container {
+            background: rgba(255, 248, 205, 0.85);
+            backdrop-filter: blur(3px);
+            border-radius: 80px 80px 60px 60px;
+            box-shadow: 0 20px 35px rgba(0,0,0,0.3), inset 0 1px 4px rgba(255,255,200,0.8);
+            padding: 20px 25px 35px 25px;
+            width: 100%;
+            max-width: 1300px;
+            z-index: 2;
+            transition: all 0.2s;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 2.4rem;
+            margin: 0 0 10px 0;
+            color: #fff3b0;
+            text-shadow: 5px 5px 0 #b45f1b, 3px 3px 10px #2c1a0e;
+            letter-spacing: 2px;
+            word-break: keep-all;
+            background: #f5a623b3;
+            display: inline-block;
+            width: auto;
+            padding: 0 30px;
+            border-radius: 60px;
+            backdrop-filter: blur(2px);
+        }
+
+        .title-area {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        /* 音乐控制栏 */
+        .sound-bar {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+            background: #fef7cfcc;
+            padding: 8px 20px;
+            border-radius: 50px;
+            backdrop-filter: blur(4px);
+        }
+
+        .sound-btn {
+            background: #ffb347;
+            border: none;
+            font-size: 1.3rem;
+            padding: 6px 15px;
+            border-radius: 40px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+            color: #3e2a1f;
+            box-shadow: 0 3px 0 #a45d1a;
+            font-family: inherit;
+        }
+
+        .sound-btn:active {
+            transform: translateY(2px);
+            box-shadow: 0 1px 0 #a45d1a;
+        }
+
+        .bgm-status {
+            background: #5e3a1c;
+            color: #ffecb3;
+            padding: 5px 14px;
+            border-radius: 30px;
+            font-size: 0.9rem;
+            font-weight: bold;
+        }
+
+        /* 卡片网格 */
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(130px, 160px));
+            justify-content: center;
+            gap: 22px 18px;
+            margin-top: 15px;
+            margin-bottom: 20px;
+            padding: 10px;
+        }
+
+        /* 卡片样式 */
+        .card {
+            aspect-ratio: 3 / 4;
+            background: transparent;
+            perspective: 800px;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            text-align: center;
+            transition: transform 0.4s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+            transform-style: preserve-3d;
+            border-radius: 24px;
+            box-shadow: 0 12px 20px rgba(0,0,0,0.3);
+        }
+
+        /* 翻转状态 */
+        .card.flipped .card-inner {
+            transform: rotateY(180deg);
+        }
+
+        /* 正面 & 背面通用 */
+        .card-front, .card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 24px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            box-sizing: border-box;
+            padding: 15px 8px;
+            background: #fff9e8;
+            border: 4px solid #ffcd94;
+            box-shadow: inset 0 0 0 2px #ffefb0, 0 8px 12px rgba(0,0,0,0.2);
+        }
+
+        /* 卡片背面 (字卡1风格) */
+        .card-back {
+            background: repeating-linear-gradient(45deg, #ffdd99, #ffdd99 15px, #ffcc88 15px, #ffcc88 30px);
+            transform: rotateY(0deg);
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #c55a1a;
+            text-shadow: 2px 2px 0 #ffeecc;
+            gap: 12px;
+        }
+
+        .card-back::before {
+            content: "📖";
+            font-size: 3rem;
+        }
+
+        .card-back span {
+            background: #ffedb5;
+            padding: 5px 12px;
+            border-radius: 40px;
+            font-size: 1rem;
+        }
+
+        /* 卡片正面 (词汇 + 操作区) */
+        .card-front {
+            background: #fef7cf;
+            transform: rotateY(180deg);
+            justify-content: space-between;
+            padding: 18px 8px 12px;
+        }
+
+        .word-text {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #2c5a1e;
+            background: #fffaec;
+            padding: 10px 5px;
+            border-radius: 28px;
+            width: 100%;
+            box-shadow: inset 0 1px 4px #d4c48c, 0 2px 6px rgba(0,0,0,0.05);
+            margin-top: 8px;
+            letter-spacing: 2px;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-top: 12px;
+            margin-bottom: 8px;
+        }
+
+        .action-btn {
+            font-size: 2.2rem;
+            background: white;
+            width: 54px;
+            height: 54px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: 0.1s linear;
+            box-shadow: 0 5px 0 #b0a07c;
+            border: none;
+            background: #fff2cf;
+        }
+
+        .action-btn:active {
+            transform: translateY(3px);
+            box-shadow: 0 2px 0 #b0a07c;
+        }
+
+        .btn-correct {
+            color: #2b7a2b;
+            background: #d9ffc7;
+        }
+
+        .btn-wrong {
+            color: #c73e1d;
+            background: #ffe0cf;
+        }
+
+        .pending-hint {
+            font-size: 0.75rem;
+            background: #ffd966;
+            border-radius: 40px;
+            padding: 4px 10px;
+            color: #3b2a1f;
+            font-weight: bold;
+            margin-top: 8px;
+        }
+
+        /* 消失时隐藏卡片 */
+        .card.removed {
+            display: none;
+        }
+
+        /* 全局按钮 */
+        .info-panel {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+            gap: 20px;
+        }
+
+        .reset-btn {
+            background: #ffaa33;
+            border: none;
+            font-size: 1.2rem;
+            padding: 8px 25px;
+            border-radius: 50px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+            box-shadow: 0 5px 0 #aa6f20;
+            color: #2e241a;
+        }
+
+        .reset-btn:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px 0 #aa6f20;
+        }
+
+        .counter {
+            background: #fff0bb;
+            padding: 5px 20px;
+            border-radius: 40px;
+            font-weight: bold;
+            font-size: 1.2rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        footer {
+            text-align: center;
+            font-size: 0.7rem;
+            color: #f9eec1;
+            margin-top: 15px;
+            text-shadow: 1px 1px 0 #2b4b1a;
+        }
+        @media (max-width: 650px) {
+            .cards-grid {
+                gap: 12px;
+                grid-template-columns: repeat(auto-fill, minmax(110px, 130px));
+            }
+            .word-text {
+                font-size: 1.3rem;
+            }
+            .action-btn {
+                width: 44px;
+                height: 44px;
+                font-size: 1.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="game-container">
+    <div class="title-area">
+        <h1>🥗 果蔬翻翻乐 🍎</h1>
+    </div>
+    <div class="sound-bar">
+        <div class="bgm-status" id="bgmStatus">🎵 BGM 待播放</div>
+        <button class="sound-btn" id="toggleBgmBtn">🔊 播放音乐</button>
+        <button class="sound-btn" id="stopBgmBtn">🔇 停止音乐</button>
+    </div>
+
+    <div class="cards-grid" id="cardsGrid"></div>
+
+    <div class="info-panel">
+        <div class="counter">📚 剩余字卡: <span id="remainCount">0</span></div>
+        <button class="reset-btn" id="resetGameBtn">🔄 重新开始</button>
+    </div>
+    <footer>⭐ 老师指导: 翻开卡片→学生朗读→点击✅(正确)后再点卡片消失 / 点击❌(错误)卡片翻回背面</footer>
+</div>
+
+<script>
+    // ----- 词汇库 (18个生词) -----
+    const WORDS = [
+        "芹菜", "青菜", "西兰花", "西红柿", "蘑菇", "胡萝卜", 
+        "生菜", "辣椒", "黄瓜", "苹果", "南瓜", "西瓜", 
+        "冬瓜", "香蕉", "草莓", "葡萄", "香肠", "火腿"
+    ];
+
+    // ----- 音效系统 (纯Web Audio合成, 无需外部文件) -----
+    class AudioFX {
+        constructor() {
+            this.audioCtx = null;
+            this.isAllowed = false;     // 需用户手势初始化
+        }
+
+        initAudio() {
+            if (this.audioCtx) return Promise.resolve(this.audioCtx);
+            try {
+                this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                return this.audioCtx.resume().then(() => {
+                    this.isAllowed = true;
+                    return this.audioCtx;
+                });
+            } catch(e) {
+                console.warn("Web Audio not supported", e);
+                this.isAllowed = false;
+                return Promise.reject(e);
+            }
+        }
+
+        // 播放正确音效 (清脆叮咚)
+        playCorrect() {
+            if (!this.isAllowed || !this.audioCtx) return;
+            const ctx = this.audioCtx;
+            const now = ctx.currentTime;
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.type = 'sine';
+            osc.frequency.value = 880;
+            gain.gain.setValueAtTime(0.3, now);
+            gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.6);
+            osc.start();
+            osc.stop(now + 0.5);
+            // 第二个泛音
+            const osc2 = ctx.createOscillator();
+            const gain2 = ctx.createGain();
+            osc2.connect(gain2);
+            gain2.connect(ctx.destination);
+            osc2.frequency.value = 1170;
+            gain2.gain.setValueAtTime(0.2, now);
+            gain2.gain.exponentialRampToValueAtTime(0.0001, now + 0.4);
+            osc2.start();
+            osc2.stop(now + 0.45);
+        }
+
+        // 播放错误音效 (低沉嘟声)
+        playWrong() {
+            if (!this.isAllowed || !this.audioCtx) return;
+            const ctx = this.audioCtx;
+            const now = ctx.currentTime;
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.type = 'triangle';
+            osc.frequency.value = 320;
+            gain.gain.setValueAtTime(0.35, now);
+            gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.55);
+            osc.start();
+            osc.stop(now + 0.5);
+            // 低音噪音感
+            const osc2 = ctx.createOscillator();
+            const gain2 = ctx.createGain();
+            osc2.connect(gain2);
+            gain2.connect(ctx.destination);
+            osc2.frequency.value = 210;
+            gain2.gain.setValueAtTime(0.2, now);
+            gain2.gain.exponentialRampToValueAtTime(0.0001, now + 0.45);
+            osc2.start();
+            osc2.stop(now + 0.45);
+        }
+    }
+
+    // ----- 背景音乐 (欢乐简单旋律循环) -----
+    class BgmPlayer {
+        constructor(audioFX) {
+            this.audioFX = audioFX;
+            this.isPlaying = false;
+            this.timerId = null;
+            this.melodyNotes = [523.25, 587.33, 659.25, 523.25, 659.25, 784.0, 880.0]; // 欢乐C大调片段
+            this.index = 0;
+            this.intervalTime = 520; // ms
+        }
+
+        async start() {
+            if (this.isPlaying) return;
+            await this.audioFX.initAudio();
+            if (!this.audioFX.audioCtx) return;
+            this.isPlaying = true;
+            this.scheduleLoop();
+        }
+
+        stop() {
+            if (this.timerId) {
+                clearInterval(this.timerId);
+                this.timerId = null;
+            }
+            this.isPlaying = false;
+        }
+
+        scheduleLoop() {
+            if (this.timerId) clearInterval(this.timerId);
+            this.timerId = setInterval(() => {
+                if (!this.isPlaying) return;
+                this.playNextNote();
+            }, this.intervalTime);
+        }
+
+        playNextNote() {
+            if (!this.audioFX.isAllowed || !this.audioFX.audioCtx) return;
+            const ctx = this.audioFX.audioCtx;
+            const now = ctx.currentTime;
+            const note = this.melodyNotes[this.index % this.melodyNotes.length];
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.type = 'sine';
+            osc.frequency.value = note;
+            gain.gain.setValueAtTime(0.12, now);
+            gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.4);
+            osc.start();
+            osc.stop(now + 0.38);
+            // 加一点和声快乐感
+            if (this.index % 2 === 0) {
+                const osc2 = ctx.createOscillator();
+                const gain2 = ctx.createGain();
+                osc2.connect(gain2);
+                gain2.connect(ctx.destination);
+                osc2.frequency.value = note * 1.5;
+                gain2.gain.setValueAtTime(0.05, now);
+                gain2.gain.exponentialRampToValueAtTime(0.0001, now + 0.3);
+                osc2.start();
+                osc2.stop(now + 0.32);
+            }
+            this.index++;
+        }
+    }
+
+    // ----- 卡片管理 -----
+    class CardGame {
+        constructor(container, words, fx, bgm) {
+            this.container = container;
+            this.words = [...words];
+            this.fx = fx;
+            this.bgm = bgm;
+            this.cardsData = [];     // 存储每张卡的状态 { word, id, removed, flipped, pendingRemove }
+            this.cardElements = new Map(); // id -> dom 元素
+            this.nextId = 0;
+        }
+
+        init() {
+            this.buildCards();
+            this.render();
+            this.updateRemainCount();
+        }
+
+        buildCards() {
+            this.cardsData = this.words.map((word, idx) => ({
+                id: this.nextId++,
+                word: word,
+                removed: false,
+                flipped: false,      // 是否显示正面(词语)
+                pendingRemove: false // 正确后等待二次点击消失
+            }));
+        }
+
+        render() {
+            this.container.innerHTML = '';
+            this.cardElements.clear();
+            for (let card of this.cardsData) {
+                if (card.removed) continue;
+                const cardDiv = this.createCardElement(card);
+                this.container.appendChild(cardDiv);
+                this.cardElements.set(card.id, cardDiv);
+            }
+        }
+
+        createCardElement(card) {
+            const cardDiv = document.createElement('div');
+            cardDiv.className = 'card';
+            if (card.flipped) cardDiv.classList.add('flipped');
+            if (card.removed) cardDiv.classList.add('removed');
+
+            const inner = document.createElement('div');
+            inner.className = 'card-inner';
+
+            // 背面
+            const backDiv = document.createElement('div');
+            backDiv.className = 'card-back';
+            const backSpan = document.createElement('span');
+            backSpan.innerText = `字卡${card.id + 1}`;
+            backDiv.appendChild(backSpan);
+            // 正面
+            const frontDiv = document.createElement('div');
+            frontDiv.className = 'card-front';
+            const wordSpan = document.createElement('div');
+            wordSpan.className = 'word-text';
+            wordSpan.innerText = card.word;
+            frontDiv.appendChild(wordSpan);
+
+            // 操作按钮区 (正面)
+            const actionDiv = document.createElement('div');
+            actionDiv.className = 'action-buttons';
+            const correctBtn = document.createElement('div');
+            correctBtn.className = 'action-btn btn-correct';
+            correctBtn.innerHTML = '✅';
+            const wrongBtn = document.createElement('div');
+            wrongBtn.className = 'action-btn btn-wrong';
+            wrongBtn.innerHTML = '❌';
+            actionDiv.appendChild(correctBtn);
+            actionDiv.appendChild(wrongBtn);
+            frontDiv.appendChild(actionDiv);
+
+            // 待消失提示区域 (动态)
+            const hintDiv = document.createElement('div');
+            hintDiv.className = 'pending-hint';
+            hintDiv.style.display = 'none';
+            hintDiv.innerText = '✨ 再点卡片消失 ✨';
+            frontDiv.appendChild(hintDiv);
+
+            inner.appendChild(backDiv);
+            inner.appendChild(frontDiv);
+            cardDiv.appendChild(inner);
+
+            // 事件绑定 --------------------------------------------
+            // 卡片点击 (翻转/消失)
+            cardDiv.addEventListener('click', (e) => {
+                // 防止点到按钮冒泡
+                if (e.target === correctBtn || e.target === wrongBtn || correctBtn.contains(e.target) || wrongBtn.contains(e.target)) return;
+                e.stopPropagation();
+                this.handleCardClick(card.id);
+            });
+
+            // 正确按钮
+            correctBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.handleCorrect(card.id);
+            });
+            // 错误按钮
+            wrongBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.handleWrong(card.id);
+            });
+
+            // 储存一些dom引用以便更新样式
+            cardDiv.cardRef = { card, hintDiv, actionDiv, wordSpan, correctBtn, wrongBtn };
+            return cardDiv;
+        }
+
+        // 点击卡片逻辑
+        handleCardClick(id) {
+            const card = this.cardsData.find(c => c.id === id);
+            if (!card || card.removed) return;
+
+            const dom = this.cardElements.get(id);
+            if (!dom) return;
+
+            // 情况1: 待消失状态 (老师已点✅) -> 执行消失
+            if (card.pendingRemove && card.flipped) {
+                this.removeCard(card, dom);
+                return;
+            }
+
+            // 情况2: 普通翻转 (未翻开 且 不是待消失状态)
+            if (!card.flipped && !card.pendingRemove) {
+                // 翻转显示词语
+                this.flipCardToFront(card, dom);
+            }
+            // 如果已翻开且无pending状态，点击无效（只靠按钮操作）
+        }
+
+        flipCardToFront(card, dom) {
+            card.flipped = true;
+            dom.classList.add('flipped');
+            // 保证操作按钮显示，隐藏提示
+            if (dom.cardRef && dom.cardRef.hintDiv) {
+                dom.cardRef.hintDiv.style.display = 'none';
+            }
+            // 确保正确错误按钮可见
+            if (dom.cardRef && dom.cardRef.actionDiv) {
+                dom.cardRef.actionDiv.style.display = 'flex';
+            }
+        }
+
+        flipCardToBack(card, dom) {
+            card.flipped = false;
+            card.pendingRemove = false; // 取消待消失标记
+            dom.classList.remove('flipped');
+            if (dom.cardRef && dom.cardRef.hintDiv) {
+                dom.cardRef.hintDiv.style.display = 'none';
+            }
+            if (dom.cardRef && dom.cardRef.actionDiv) {
+                dom.cardRef.actionDiv.style.display = 'flex';
+            }
+        }
+
+        // 老师点正确 ✅
+        handleCorrect(id) {
+            const card = this.cardsData.find(c => c.id === id);
+            if (!card || card.removed) return;
+            if (!card.flipped) return;   // 没翻开不能点正确
+            if (card.pendingRemove) return; // 已经待消失状态不能重复正确
+
+            const dom = this.cardElements.get(id);
+            if (!dom) return;
+
+            // 播放答对音效
+            this.fx.playCorrect();
+
+            // 设定待消失状态
+            card.pendingRemove = true;
+            // UI改变: 隐藏正确错误按钮，显示提示“再点卡片消失”
+            if (dom.cardRef && dom.cardRef.actionDiv) {
+                dom.cardRef.actionDiv.style.display = 'none';
+            }
+            if (dom.cardRef && dom.cardRef.hintDiv) {
+                dom.cardRef.hintDiv.style.display = 'block';
+            }
+        }
+
+        // 老师点错误 ❌
+        handleWrong(id) {
+            const card = this.cardsData.find(c => c.id === id);
+            if (!card || card.removed) return;
+            if (!card.flipped) return;
+            const dom = this.cardElements.get(id);
+            if (!dom) return;
+
+            // 播放答错音效
+            this.fx.playWrong();
+
+            // 无论是否处于pendingRemove，只要点叉直接翻回背面且取消任何待消失
+            if (card.pendingRemove) {
+                card.pendingRemove = false;
+            }
+            this.flipCardToBack(card, dom);
+        }
+
+        // 卡片消失 (正确后再点卡片)
+        removeCard(card, dom) {
+            if (card.removed) return;
+            card.removed = true;
+            card.flipped = false;
+            card.pendingRemove = false;
+            // 添加消失class，从界面移除
+            dom.classList.add('removed');
+            // 从卡片映射中保留但不可见
+            this.cardElements.delete(card.id);
+            dom.remove();  // 直接从DOM移除
+            this.updateRemainCount();
+
+            // 检查是否胜利
+            const remaining = this.cardsData.filter(c => !c.removed).length;
+            if (remaining === 0) {
+                setTimeout(() => {
+                    alert("🎉 太棒啦！所有字卡都学会啦！ 🎉");
+                }, 50);
+            }
+        }
+
+        updateRemainCount() {
+            const remain = this.cardsData.filter(c => !c.removed).length;
+            document.getElementById('remainCount').innerText = remain;
+        }
+
+        resetGame() {
+            // 重置所有卡片数据
+            this.nextId = 0;
+            this.cardsData = [];
+            this.cardElements.clear();
+            this.buildCards();
+            this.render();
+            this.updateRemainCount();
+        }
+    }
+
+    // ---------- 初始化整个应用 ----------
+    (async function() {
+        const fx = new AudioFX();
+        const bgmPlayer = new BgmPlayer(fx);
+        
+        // 先预初始化音频上下文(静默等待手势)，但为了音效不自动播放，首次任何音效或bgm会触发初始化
+        // 让用户点击"播放音乐"时初始化并开始bgm
+        const toggleBgmBtn = document.getElementById('toggleBgmBtn');
+        const stopBgmBtn = document.getElementById('stopBgmBtn');
+        const bgmStatusSpan = document.getElementById('bgmStatus');
+
+        // 开始播放背景音乐
+        const startBgm = async () => {
+            await fx.initAudio();
+            bgmPlayer.start();
+            bgmStatusSpan.innerHTML = '🎵 BGM 欢乐播放中 🎵';
+        };
+        const stopBgm = () => {
+            bgmPlayer.stop();
+            bgmStatusSpan.innerHTML = '🔇 BGM 已停止';
+        };
+
+        toggleBgmBtn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            if (!bgmPlayer.isPlaying) {
+                await startBgm();
+            } else {
+                // 如果正在播放，再次点击无妨，但按照逻辑也可以重新播放, 但做友好: 若已经播放就重启?
+                // 但是体验：重新播放（先停再播）
+                stopBgm();
+                await startBgm();
+            }
+        });
+        stopBgmBtn.addEventListener('click', () => {
+            stopBgm();
+        });
+
+        // 为了让音效在任何点击前可用，首次点击任意正确/错误按钮时也会自动初始化音频（在playCorrect里会判断isAllowed，但需要ctx初始化)
+        // 增加一个全局温和初始化：点击游戏区域首次触发音频许可
+        const initAudioOnFirstUserGesture = async () => {
+            if (!fx.audioCtx) {
+                await fx.initAudio();
+                // 不自动播放bgm，需要用户点播放按钮
+            }
+        };
+        document.body.addEventListener('click', () => {
+            if (!fx.isAllowed) {
+                initAudioOnFirstUserGesture();
+            }
+        }, { once: true });
+
+        // 创建游戏实例
+        const gridContainer = document.getElementById('cardsGrid');
+        const game = new CardGame(gridContainer, WORDS, fx, bgmPlayer);
+        game.init();
+
+        // 重置按钮
+        const resetBtn = document.getElementById('resetGameBtn');
+        resetBtn.addEventListener('click', () => {
+            game.resetGame();
+            // 重置时停止bgm? 保留bgm状态更好，不清除音乐
+            // 但重置后卡片全恢复
+        });
+
+        // 增加剩余卡片显示联动
+        const updateRemainObserver = () => {
+            game.updateRemainCount();
+        };
+        // 小优化: 卡片消失后更新，已在removeCard调用updateRemainCount
+    })();
+</script>
+</body>
+</html>
